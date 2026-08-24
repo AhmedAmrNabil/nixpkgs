@@ -13,7 +13,6 @@
 
   gsl,
 
-  poppler,
   fftw,
   hdf5,
   netcdf,
@@ -24,8 +23,17 @@
   readstat,
   matio,
   discount,
+  eigen,
+  liborcus,
+  libixion,
+  vector-blf,
+  qt6Packages,
+  zstd,
+  boost,
+  liborigin,
+  glibcLocales,
+  dbc-parser-cpp,
 }:
-
 stdenv.mkDerivation (finalAttrs: {
   pname = "labplot";
   version = "2.12.1";
@@ -42,10 +50,12 @@ stdenv.mkDerivation (finalAttrs: {
       url = "https://invent.kde.org/education/labplot/-/commit/c2db2ec28aa8958f7041ae5cd03ddae9f44e5aa3.diff";
       hash = "sha256-0biKZXWMs5y1U9phAivEAbd2N4C/CiOKvk/QRAaPimo=";
     })
-  ];
 
-  cmakeFlags = [
-    "-DQT_FIND_PRIVATE_MODULES=ON"
+    # support liborcus-0.21
+    (fetchpatch {
+      url = "https://invent.kde.org/education/labplot/-/commit/ee17e7659a97b36b58cab28b2b56cede7cd153c6.patch";
+      sha256 = "sha256-NC5CjO4X27NGlt17CwcPNsLx4ClbpE1zacH/XGaWwTs=";
+    })
   ];
 
   nativeBuildInputs = [
@@ -75,6 +85,9 @@ stdenv.mkDerivation (finalAttrs: {
     kdePackages.ktextwidgets
     kdePackages.kxmlgui
 
+    kdePackages.kuserfeedback
+    kdePackages.purpose
+
     kdePackages.syntax-highlighting
     gsl
 
@@ -91,7 +104,36 @@ stdenv.mkDerivation (finalAttrs: {
     matio
     qt6.qtserialport
     discount
+
+    qt6.qtmqtt
+    qt6Packages.qxlsx
+
+    eigen
+    liborcus
+    libixion
+    vector-blf
+    dbc-parser-cpp
+    zstd
+    boost
+    liborigin
   ];
+
+  cmakeFlags = [
+    (lib.cmakeBool "QT_FIND_PRIVATE_MODULES" true)
+    (lib.cmakeBool "ENABLE_REPRODUCIBLE" true)
+    (lib.cmakeBool "ENABLE_TESTS" finalAttrs.finalPackage.doCheck)
+  ];
+
+  nativeCheckInputs = [ glibcLocales ];
+
+  preCheck = ''
+    export HOME=$(mktemp -d)
+    export QT_QPA_PLATFORM=offscreen
+    export TZ=UTC
+    export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
+  '';
+
+  doCheck = true;
 
   meta = {
     description = "Free, open source and cross-platform data visualization and analysis software accessible to everyone";
@@ -108,8 +150,11 @@ stdenv.mkDerivation (finalAttrs: {
       lgpl3Plus
       mit
     ];
-    maintainers = [ ];
-    mainProgram = "labplot2";
-    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [
+      AhmedAmr
+    ];
+    teams = with lib.teams; [ ngi ];
+    mainProgram = "labplot";
+    platforms = lib.platforms.all;
   };
 })
